@@ -1,10 +1,3 @@
--------------------------------------------------------------------------
--- Engineer: Eduard-Guillem Merino Mallorqui
--- Create Date: 12:14:40 01/04/2017 
--- Module Name: STDP - Behavioral 
--- Project Name: Digital System for Neural Network Emulation
--------------------------------------------------------------------------
-
 LIBRARY IEEE;
 USE IEEE.STD_LOGIC_1164.ALL;
 USE IEEE.numeric_std.ALL;
@@ -14,8 +7,7 @@ ENTITY STDP IS
     GENERIC (
         neuron_adr : IN INTEGER;
         weights : IN INTEGER;
-        input_neuron_num : IN INTEGER;
-        training_neuron_num : IN INTEGER;
+        neuron_num : IN INTEGER;
         pre_reg : IN INTEGER;
         post_reg : IN INTEGER);
     PORT (
@@ -23,7 +15,7 @@ ENTITY STDP IS
         RST : IN STD_LOGIC;
         EN : IN STD_LOGIC;
         EN_Addr : IN STD_LOGIC;
-        Pre_Spikes : IN STD_LOGIC_VECTOR(input_neuron_num - training_neuron_num DOWNTO 0);
+        Pre_Spikes : IN STD_LOGIC_VECTOR(neuron_num DOWNTO 0);
         Post_Spike : IN STD_LOGIC;
         WE : OUT STD_LOGIC;
         Addr : OUT STD_LOGIC_VECTOR(neuron_adr DOWNTO 0);
@@ -34,8 +26,8 @@ ARCHITECTURE Behavioral OF STDP IS
     SIGNAL post_shift_reg : STD_LOGIC_VECTOR(5 DOWNTO 0) := (OTHERS => '0');
     SIGNAL Pre_Spike, pre_gate, post_gate, decr_sel, incr_sel, decr, incr : STD_LOGIC := '0';
     SIGNAL Syn_Addr : unsigned(neuron_adr DOWNTO 0) := (OTHERS => '0');
-    TYPE memory_weight IS ARRAY (0 TO input_neuron_num) OF signed(weights DOWNTO 0);
-    SIGNAL Syn_Weight : memory_weight := (OTHERS => (OTHERS => '1'));
+    TYPE memory_weight IS ARRAY (0 TO neuron_num) OF signed(weights DOWNTO 0);
+    SIGNAL Syn_Weight : memory_weight := (OTHERS => (OTHERS => '0'));
 
 BEGIN
     -- Synaptic Addr counter and Pre-Spike selector
@@ -44,7 +36,7 @@ BEGIN
         IF (rising_edge(clk)) THEN
             IF (EN = '1') THEN
                 IF EN_Addr = '1' THEN
-                    IF Syn_Addr = input_neuron_num - training_neuron_num THEN
+                    IF Syn_Addr = neuron_num THEN
                         Syn_Addr <= (OTHERS => '0');
                     ELSE
                         Syn_Addr <= Syn_Addr + 1;
@@ -53,7 +45,6 @@ BEGIN
             END IF;
         END IF;
     END PROCESS;
-
     Pre_Spike <= Pre_Spikes(to_integer(Syn_Addr));
     Addr <= STD_LOGIC_VECTOR(Syn_Addr);
     -- Pre-Spike Shift Register
@@ -116,8 +107,8 @@ BEGIN
     BEGIN
         IF (rising_edge(clk)) THEN
             IF (RST = '1') THEN
-                -- Syn_Weight(to_integer(Syn_Addr))<=(others=>'0');
-                -- WE <= '1';
+                Syn_Weight(to_integer(Syn_Addr)) <= (OTHERS => '0');
+                WE <= '1';
             ELSIF (EN = '1') THEN
                 IF (decr = '1') THEN
                     IF Syn_Weight(to_integer(Syn_Addr)) >- 140 THEN
